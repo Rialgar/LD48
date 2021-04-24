@@ -1,4 +1,5 @@
 import DungeonMap from '../dungeonMap.js';
+import Mob from '../mob.js';
 
 const tileSize = 32;
 const gameSize = {
@@ -21,17 +22,15 @@ const GameState = () => ({
         y: 0
     },
     map: null,
-    player: {
-        x: 5,
-        y: 5
-    },
+    player: new Mob(),
 
     create: function () {
         this.lightCircle = document.createElement('canvas');
         this.resize();
         this.map = new DungeonMap(this.app.images, tileSize);
-        this.scroll.x = gameSize.x/2 - this.player.x * tileSize;
-        this.scroll.y = gameSize.y/2 - this.player.y * tileSize;
+        this.player.setPosition(5, 5);
+        this.scroll.x = gameSize.x/2 - (this.player.position.x+0.5) * tileSize;
+        this.scroll.y = gameSize.y/2 - (this.player.position.y+0.5) * tileSize;
     },
     resize: function () {
         const prevScale = this.scale;        
@@ -51,14 +50,15 @@ const GameState = () => ({
     },
 
     step: function (dt) {
-        const scrollDX = gameSize.x/2 - (this.player.x+0.5) * tileSize - this.scroll.x
+        this.player.update(dt, this.scale);
+        const scrollDX = gameSize.x/2 - (this.player.position.x+0.5) * tileSize - this.scroll.x
         if(scrollDX !== 0){
-            this.scroll.x += Math.abs(scrollDX) <= 1/this.scale ? scrollDX : scrollDX * dt * 4;
+            this.scroll.x += (Math.abs(scrollDX) <= 1/this.scale) ? scrollDX : (scrollDX * dt * 4);
         }
-        const scrollDY = gameSize.y/2 - (this.player.y+0.5) * tileSize - this.scroll.y
+        const scrollDY = gameSize.y/2 - (this.player.position.y+0.5) * tileSize - this.scroll.y
         if(scrollDY !== 0){
-            this.scroll.y += Math.abs(scrollDY) <= 1/this.scale ? scrollDY : scrollDY * dt * 4;
-        }
+            this.scroll.y += (Math.abs(scrollDY) <= 1/this.scale) ? scrollDY : (scrollDY * dt * 4);
+        }        
     },
     render: function (dt) {
         const ctx = this.app.layer.context;
@@ -78,11 +78,11 @@ const GameState = () => ({
         
         this.map.render(ctx, tx, ty);
         ctx.fillStyle = "red";
-        ctx.fillRect((this.player.x + 0.25) * tileSize + tx, (this.player.y + 0.25) * tileSize + ty, tileSize / 2, tileSize / 2);                    
+        ctx.fillRect((this.player.position.x + 0.25) * tileSize + tx, (this.player.position.y + 0.25) * tileSize + ty, tileSize / 2, tileSize / 2);                    
 
         ctx.restore();
-        const cx = ((this.player.x+0.5) * tileSize + tx) * this.scale + this.offset.x;
-        const cy = ((this.player.y+0.5) * tileSize + ty) * this.scale + this.offset.y;
+        const cx = ((this.player.position.x+0.5) * tileSize + tx) * this.scale + this.offset.x;
+        const cy = ((this.player.position.y+0.5) * tileSize + ty) * this.scale + this.offset.y;
         ctx.drawImage(this.lightCircle, cx-this.lightCircle.width/2, cy-this.lightCircle.height/2);
 
         //DEBUG INFO
@@ -99,26 +99,26 @@ const GameState = () => ({
         switch (data.key) {
             case 'left':
             case 'a':
-                if(!this.map.collides(this.player.x, this.player.y, "left")){
-                    this.player.x -= 1;
+                if(!this.map.collides(this.player.target.x, this.player.target.y, "left")){
+                    this.player.move(-1, 0);
                 }
                 break;
             case 'right':
             case 'd':
-                if(!this.map.collides(this.player.x, this.player.y, "right")){
-                    this.player.x += 1;
+                if(!this.map.collides(this.player.target.x, this.player.target.y, "right")){
+                    this.player.move(1, 0);
                 }
                 break;
             case 'up':
             case 'w':
-                if(!this.map.collides(this.player.x, this.player.y, "top")){
-                    this.player.y -= 1;
+                if(!this.map.collides(this.player.target.x, this.player.target.y, "top")){
+                    this.player.move(0, -1);
                 }
                 break;
             case 'down':
             case 's':
-                if(!this.map.collides(this.player.x, this.player.y, "bottom")){
-                    this.player.y += 1;
+                if(!this.map.collides(this.player.target.x, this.player.target.y, "bottom")){
+                    this.player.move(0, 1);
                 }
                 break;            
         }
