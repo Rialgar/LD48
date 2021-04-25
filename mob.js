@@ -22,14 +22,16 @@ class Mob {
         this.target = {...this.position};
     }
 
-    update(dt, scale){
+    update(dt){
         const dx = this.target.x - this.position.x
         if(dx !== 0){
-            this.position.x += (Math.abs(dx) <= 0.1/scale) ? dx : (Math.sign(dx) * dt * 10);
+            const mx = Math.sign(dx) * dt * 10;
+            this.position.x += (Math.abs(dx) <= Math.abs(mx)) ? dx : mx;
         }
         const dy = this.target.y - this.position.y
         if(dy !== 0){
-            this.position.y += (Math.abs(dy) <= 0.1/scale) ? dy : (Math.sign(dy) * dt * 10);
+            const my = Math.sign(dy) * dt * 10;
+            this.position.y += (Math.abs(dy) <= Math.abs(my)) ? dy : my;
         }
     }
 }

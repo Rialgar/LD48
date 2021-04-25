@@ -7,6 +7,8 @@ const gameSize = {
     y: 150 * tileSize / 16
 }
 
+let fps = 60;
+
 const GameState = () => ({
     scale: 0,
     offset: {
@@ -27,10 +29,8 @@ const GameState = () => ({
     create: function () {
         this.lightCircle = document.createElement('canvas');
         this.resize();
-        this.map = new DungeonMap(this.app.images, tileSize);
-        this.player.setPosition(5, 5);
-        this.scroll.x = gameSize.x/2 - (this.player.position.x+0.5) * tileSize;
-        this.scroll.y = gameSize.y/2 - (this.player.position.y+0.5) * tileSize;
+        this.mapSize = 2;
+        this.nextMap();        
     },
     resize: function () {
         const prevScale = this.scale;        
@@ -58,7 +58,10 @@ const GameState = () => ({
         const scrollDY = gameSize.y/2 - (this.player.position.y+0.5) * tileSize - this.scroll.y
         if(scrollDY !== 0){
             this.scroll.y += (Math.abs(scrollDY) <= 1/this.scale) ? scrollDY : (scrollDY * dt * 4);
-        }        
+        }
+        if(this.player.position.x === this.map.goal.x && this.player.position.y == this.map.goal.y){
+            this.nextMap();
+        }
     },
     render: function (dt) {
         const ctx = this.app.layer.context;
@@ -89,10 +92,10 @@ const GameState = () => ({
         ctx.strokeStyle = 'white';
         ctx.strokeRect(this.offset.x, this.offset.y, gameSize.x * this.scale, gameSize.y * this.scale);
 
-        const fps = Math.ceil(1/dt);
+        fps = (fps * 29 + 1 / dt) / 30;
         ctx.font = "20px sans-serif";
         ctx.fillStyle = 'white';
-        ctx.fillText(fps, 10, 30);
+        ctx.fillText(Math.round(fps), 10, 30);
     },
 
     keydown: function (data) {
@@ -134,6 +137,16 @@ const GameState = () => ({
     gamepadhold: function (data) { },
     gamepadup: function (data) { },
     gamepadmove: function (data) { },
+    
+    //custom functions
+
+    nextMap: function (){
+        this.mapSize++;
+        this.map = new DungeonMap(this.app.images["walls"+tileSize], tileSize, this.mapSize);
+        this.player.setPosition(this.map.start.x, this.map.start.y);
+        this.scroll.x = gameSize.x/2 - (this.player.position.x+0.5) * tileSize;
+        this.scroll.y = gameSize.y/2 - (this.player.position.y+0.5) * tileSize;
+    }
 });
 
 export default GameState;
