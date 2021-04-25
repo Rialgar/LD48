@@ -63,7 +63,7 @@ const GameState = () => ({
             this.energy = Math.min(this.energy + 50, maxEnergy);
             this.torchesCollected++;
         }
-        if(this.map.tiles[px][py].item !== 'splotch'){
+        if(this.map.tiles[px][py].item !== 'splotch' && this.map.tiles[px][py].item !== 'goal'){
             this.map.setItem(px, py, 'splotch');
             this.splotchesPlaced++;
         }        
