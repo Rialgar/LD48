@@ -1,4 +1,24 @@
-const border = 10;
+const drawTile = (tile, tileSize, tileSet, objectImage, ctx) => {
+    const tileX = tileSize * (
+        (tile.walls.top ? 1 : 0) +
+        (tile.walls.left ? 2 : 0) +
+        (tile.walls.bottom ? 4 : 0)
+    );
+    const tileY = tileSize * (tile.walls.right ? 1 : 0);
+
+    ctx.drawImage(tileSet, tileX, tileY, tileSize, tileSize, tile.x*tileSize, tile.y*tileSize, tileSize, tileSize);
+    if(tile.item === 'goal'){
+        ctx.drawImage(objectImage, 0, 0, 16, 16, tile.x*tileSize+8, tile.y*tileSize+8, 16, 16);
+    } else if (tile.item === 'battery'){
+        ctx.drawImage(objectImage, 0, 32, 16, 16, tile.x*tileSize+8, tile.y*tileSize+8, 16, 16);
+    }
+
+    /*ctx.fillStyle = "white";
+    ctx.font = '10px sans-serif';
+    ctx.fillText(tile.distance, x*this.tileSize+6, y*this.tileSize+16);
+    ctx.fillText((tile.walls.right ? 1 : 0)+','+(tile.walls.bottom ? 1 : 0)+','+(tile.walls.left ? 1 : 0)+','+(tile.walls.up ? 1 : 0), 6, 10);
+    ctx.fillText(tileX + "," + tileY, 6, 24);*/
+}
 class DungeonMap {
     tileSize = 16;
     images = {};
@@ -125,6 +145,17 @@ class DungeonMap {
             }
         }
         this.goal = farthest;
+        this.goal.item = 'goal';
+
+        let batteries = size/3;
+        while(batteries > 0){
+            const tile = this.tiles[Math.floor(Math.random() * this.width)][Math.floor(Math.random() * this.height)];
+            if(tile === this.start || tile === this.goal){
+                continue;
+            }
+            tile.item = 'battery';
+            batteries--;
+        }
 
         this.image = document.createElement('canvas');
         this.image.width = (this.width+10) * this.tileSize;
@@ -135,28 +166,12 @@ class DungeonMap {
         ctx.translate(5*this.tileSize, 5*this.tileSize);
         for(let x = 0; x < this.width; x++){
             for(let y = 0; y < this.height; y++){
-                const tile = this.tiles[x][y];
-                const tileX = this.tileSize * (
-                    (tile.walls.top ? 1 : 0) +
-                    (tile.walls.left ? 2 : 0) +
-                    (tile.walls.bottom ? 4 : 0)
-                );
-                const tileY = this.tileSize * (tile.walls.right ? 1 : 0);
-
-                ctx.drawImage(tileSet, tileX, tileY, this.tileSize, this.tileSize, x*this.tileSize, y*this.tileSize, this.tileSize, this.tileSize);
-                if(tile === this.goal){
-                    ctx.drawImage(objectImage, 0, 0, 16, 16, x*this.tileSize+8, y*this.tileSize+8, 16, 16);
-                }
-
-                /*ctx.fillStyle = "white";
-                ctx.font = '10px sans-serif';
-                ctx.fillText(tile.distance, x*this.tileSize+6, y*this.tileSize+16);
-                ctx.fillText((tile.walls.right ? 1 : 0)+','+(tile.walls.bottom ? 1 : 0)+','+(tile.walls.left ? 1 : 0)+','+(tile.walls.up ? 1 : 0), 6, 10);
-                ctx.fillText(tileX + "," + tileY, 6, 24);*/
+               drawTile(this.tiles[x][y], this.tileSize, tileSet, objectImage, ctx);
             }
         }
 
         this.objectImage = objectImage;
+        this.tileSet = tileSet;
     }
 
     render(ctx){
@@ -173,6 +188,11 @@ class DungeonMap {
         const y = (this.goal.y+0.25)*this.tileSize;
         ctx.clearRect(x, y, 16, 16)
         ctx.drawImage(this.objectImage, 16, 0, 16, 16, x, y, 16, 16);
+    }
+
+    removeItem(x, y){
+        this.tiles[x][y].item = null;
+        drawTile(this.tiles[x][y], this.tileSize, this.tileSet, this.objectImage, this.image.getContext('2d')); 
     }
 
     discardImage(){

@@ -14,6 +14,7 @@ const playerOffsets = {
     'left': 48,
     'right': 64
 }
+const maxEnergy = 500;
 
 let fps = 60;
 
@@ -33,6 +34,7 @@ const GameState = () => ({
     },
     map: null,
     player: new Mob(),
+    energy: maxEnergy,
 
     create: function () {
         this.lightCircle = document.createElement('canvas');
@@ -45,21 +47,16 @@ const GameState = () => ({
         this.scale = Math.floor(Math.min(this.app.width / gameSize.x, this.app.height / gameSize.y));
         this.offset.x = Math.round((this.app.width - this.scale * gameSize.x) / 2);
         this.offset.y = Math.round((this.app.height - this.scale * gameSize.y) / 2);
-        if(prevScale != this.scale){
-            this.lightCircle.width = gameSize.x*this.scale*1.5;
-            this.lightCircle.height = gameSize.y*this.scale*1.5;
-            const ctx = this.lightCircle.getContext('2d');
-            ctx.clearRect(0, 0, this.lightCircle.width, this.lightCircle.height);
-            const lightGradient = ctx.createRadialGradient(this.lightCircle.width/2, this.lightCircle.height/2, gameSize.y*this.scale/3, this.lightCircle.width/2, this.lightCircle.height/2, gameSize.y*this.scale/2);
-            lightGradient.addColorStop(0, "rgba(0,0,0,0)");
-            lightGradient.addColorStop(1, "rgba(0,0,0,1)");
-            ctx.fillStyle = lightGradient;
-            ctx.fillRect(0, 0, this.lightCircle.width, this.lightCircle.height);
-        }
     },
 
     step: function (dt) {
         this.player.update(dt, this.scale);
+        const px = Math.round(this.player.position.x);
+        const py = Math.round(this.player.position.y);
+        if(this.map.tiles[px][py].item === 'battery'){
+            this.map.removeItem(px, py);
+            this.energy = Math.min(this.energy + 50, maxEnergy);
+        }
         const scrollDX = gameSize.x/2 - (this.player.position.x+0.5) * tileSize - this.scroll.x
         if(scrollDX !== 0){
             const scrollMX = Math.max(Math.abs(scrollDX) * dt * 4, 1/4);
@@ -127,13 +124,23 @@ const GameState = () => ({
             ctx.translate(tx, ty);
         }
         
-        const objectOffset = playerOffsets[this.player.looking];
-        ctx.drawImage(this.app.images.objects, 32+objectOffset, 0, 16, 16, this.player.position.x * tileSize + 8, this.player.position.y * tileSize + 8, 16, 16);
+        const playerXOffset = playerOffsets[this.player.looking];
+        const playerYOffset = Math.floor((1-this.energy/maxEnergy)*4) * 16;
+
+        ctx.drawImage(this.app.images.objects, 32+playerXOffset, playerYOffset, 16, 16, this.player.position.x * tileSize + 8, this.player.position.y * tileSize + 8, 16, 16);
 
         ctx.restore();
         const cx = ((this.player.position.x+0.5) * tileSize + tx) * this.scale + this.offset.x;
         const cy = ((this.player.position.y+0.5) * tileSize + ty) * this.scale + this.offset.y;
-        ctx.drawImage(this.lightCircle, cx-this.lightCircle.width/2, cy-this.lightCircle.height/2);
+        
+        const innerRadius = this.scale * (16 + (gameSize.y / 3 - 16) * this.energy / maxEnergy);
+        const outerRadius = this.scale * (17 + (gameSize.y / 2 - 17) * this.energy / maxEnergy);
+
+        const lightGradient = ctx.createRadialGradient(cx, cy, innerRadius, cx, cy, outerRadius);
+        lightGradient.addColorStop(0, "rgba(0,0,0,0)");
+        lightGradient.addColorStop(1, "rgba(0,0,0,1)");
+        ctx.fillStyle = lightGradient;
+        ctx.fillRect(this.offset.x, this.offset.y, gameSize.x * this.scale, gameSize.y * this.scale);
 
         //DEBUG INFO
         ctx.strokeStyle = 'white';
@@ -146,12 +153,16 @@ const GameState = () => ({
     },
 
     keydown: function (data) {
+        if(this.energy <= 0){
+            return;
+        }
         switch (data.key) {
             case 'left':
             case 'a':
                 this.player.looking = 'left';
                 if(!this.map.collides(this.player.target.x, this.player.target.y, "left")){
                     this.player.move(-1, 0);
+                    this.energy -= 1;
                 }
                 break;
             case 'right':
@@ -159,6 +170,7 @@ const GameState = () => ({
                 this.player.looking = 'right';
                 if(!this.map.collides(this.player.target.x, this.player.target.y, "right")){
                     this.player.move(1, 0);
+                    this.energy -= 1;
                 }
                 break;
             case 'up':
@@ -166,6 +178,7 @@ const GameState = () => ({
                 this.player.looking = 'up';
                 if(!this.map.collides(this.player.target.x, this.player.target.y, "top")){
                     this.player.move(0, -1);
+                    this.energy -= 1;
                 }
                 break;
             case 'down':
@@ -173,6 +186,7 @@ const GameState = () => ({
                 this.player.looking = 'down';
                 if(!this.map.collides(this.player.target.x, this.player.target.y, "bottom")){
                     this.player.move(0, 1);
+                    this.energy -= 1;
                 }
                 break;
         }
