@@ -30,10 +30,10 @@ const GameState = () => ({
         this.lightCircle = document.createElement('canvas');
         this.resize();
         this.mapSize = 2;
-        this.nextMap();        
+        this.nextMap();
     },
     resize: function () {
-        const prevScale = this.scale;        
+        const prevScale = this.scale;
         this.scale = Math.floor(Math.min(this.app.width / gameSize.x, this.app.height / gameSize.y));
         this.offset.x = Math.round((this.app.width - this.scale * gameSize.x) / 2);
         this.offset.y = Math.round((this.app.height - this.scale * gameSize.y) / 2);
@@ -41,6 +41,7 @@ const GameState = () => ({
             this.lightCircle.width = gameSize.x*this.scale*1.5;
             this.lightCircle.height = gameSize.y*this.scale*1.5;
             const ctx = this.lightCircle.getContext('2d');
+            ctx.clearRect(0, 0, this.lightCircle.width, this.lightCircle.height);
             const lightGradient = ctx.createRadialGradient(this.lightCircle.width/2, this.lightCircle.height/2, gameSize.y*this.scale/3, this.lightCircle.width/2, this.lightCircle.height/2, gameSize.y*this.scale/2);
             lightGradient.addColorStop(0, "rgba(0,0,0,0)");
             lightGradient.addColorStop(1, "rgba(0,0,0,1)");
@@ -53,35 +54,73 @@ const GameState = () => ({
         this.player.update(dt, this.scale);
         const scrollDX = gameSize.x/2 - (this.player.position.x+0.5) * tileSize - this.scroll.x
         if(scrollDX !== 0){
-            this.scroll.x += (Math.abs(scrollDX) <= 1/this.scale) ? scrollDX : (scrollDX * dt * 4);
+            const scrollMX = Math.max(Math.abs(scrollDX) * dt * 4, 1/4);
+            this.scroll.x += scrollMX > Math.abs(scrollDX) ? scrollDX : Math.sign(scrollDX) * scrollMX;
         }
         const scrollDY = gameSize.y/2 - (this.player.position.y+0.5) * tileSize - this.scroll.y
         if(scrollDY !== 0){
-            this.scroll.y += (Math.abs(scrollDY) <= 1/this.scale) ? scrollDY : (scrollDY * dt * 4);
+            const scrollMY = Math.max(Math.abs(scrollDY) * dt * 4, 1/4);
+            this.scroll.y += scrollMY > Math.abs(scrollDY) ? scrollDY : Math.sign(scrollDY) * scrollMY;
         }
-        if(this.player.position.x === this.map.goal.x && this.player.position.y == this.map.goal.y){
+        if(scrollDX == 0 && scrollDY == 0 && this.player.position.x === this.map.goal.x && this.player.position.y == this.map.goal.y){
             this.nextMap();
+        }
+        if (this.mapTransition < 1) {
+            this.mapTransition = Math.min(this.mapTransition + dt, 1);
         }
     },
     render: function (dt) {
-        const ctx = this.app.layer.context;
-        ctx.imageSmoothingEnabled = false;
-
-        ctx.fillStyle = 'black';
+        const ctx = this.app.layer.context;        
+        
+        //force discard previous image, so it does not stick around in graphics memory, apparently this is something we have to do these days...
+        this.app.layer.canvas.height += 1;
+        this.app.layer.canvas.height -= 1;
         ctx.clearRect(0, 0, this.app.width, this.app.height);
+        ctx.beginPath();
+        ctx.fillStyle = 'black';
         ctx.fillRect(0, 0, this.app.width, this.app.height);
+
+        ctx.imageSmoothingEnabled = false;
 
         ctx.save();
         ctx.transform(this.scale, 0, 0, this.scale, this.offset.x, this.offset.y);
 
         ctx.rect(0, 0, gameSize.x, gameSize.y)
         ctx.clip();
+
         const tx = Math.round(this.scroll.x*this.scale)/this.scale;
         const ty = Math.round(this.scroll.y*this.scale)/this.scale;
         
-        this.map.render(ctx, tx, ty);
+        if(this.mapTransition == 1){
+            ctx.translate(tx, ty);
+            this.map.render(ctx);    
+        } else {
+            ctx.save();        
+            ctx.translate(gameSize.x/2, gameSize.y/2);
+            ctx.scale(this.mapTransition, this.mapTransition);
+            ctx.translate(-gameSize.x/2, -gameSize.y/2);
+            ctx.translate(tx, ty);
+            this.map.render(ctx);
+            ctx.restore();
+    
+            if(this.prevMap){
+                const ptx = Math.round(this.prevScroll.x*this.scale)/this.scale;
+                const pty = Math.round(this.prevScroll.y*this.scale)/this.scale;
+
+                ctx.save();
+                ctx.translate(gameSize.x/2, gameSize.y/2);
+                ctx.scale(1/(1-this.mapTransition), 1/(1-this.mapTransition));
+                ctx.translate(-gameSize.x/2, -gameSize.y/2);                
+                ctx.translate(ptx, pty);
+                this.prevMap.render(ctx);
+                ctx.restore();
+            }
+    
+            ctx.translate(tx, ty);
+        }
+        
         ctx.fillStyle = "red";
-        ctx.fillRect((this.player.position.x + 0.25) * tileSize + tx, (this.player.position.y + 0.25) * tileSize + ty, tileSize / 2, tileSize / 2);                    
+        ctx.fillRect((this.player.position.x + 0.25) * tileSize, (this.player.position.y + 0.25) * tileSize, tileSize / 2, tileSize / 2);
 
         ctx.restore();
         const cx = ((this.player.position.x+0.5) * tileSize + tx) * this.scale + this.offset.x;
@@ -123,7 +162,7 @@ const GameState = () => ({
                 if(!this.map.collides(this.player.target.x, this.player.target.y, "bottom")){
                     this.player.move(0, 1);
                 }
-                break;            
+                break;
         }
     },
     keyup: function (data) {
@@ -137,11 +176,25 @@ const GameState = () => ({
     gamepadhold: function (data) { },
     gamepadup: function (data) { },
     gamepadmove: function (data) { },
-    
+
     //custom functions
 
     nextMap: function (){
+        if(this.prevMap){
+            this.prevMap.discardImage();
+        }
         this.mapSize++;
+        this.prevMap = this.map;        
+        this.mapTransition = 0;
+
+        if(this.prevMap){
+            this.prevMap.removeGoal();
+            this.prevScroll = {
+                x :gameSize.x/2 - (this.player.position.x+0.5) * tileSize,
+                y :gameSize.y/2 - (this.player.position.y+0.5) * tileSize
+            };
+        }
+
         this.map = new DungeonMap(this.app.images["walls"+tileSize], tileSize, this.mapSize);
         this.player.setPosition(this.map.start.x, this.map.start.y);
         this.scroll.x = gameSize.x/2 - (this.player.position.x+0.5) * tileSize;

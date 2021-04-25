@@ -1,11 +1,11 @@
+const border = 10;
 class DungeonMap {
     tileSize = 16;
     images = {};
 
     width = 0;
-    height = 0;    
+    height = 0;
     tiles = [];
-
 
     constructor(tileSet, tileSize, size){
         this.tileSize = tileSize;
@@ -96,12 +96,12 @@ class DungeonMap {
             choice.tile.walls[choice.dir] = false;
             choice.other.walls[choice.rev] = false;
             joinRooms(choice.tile.room, choice.other.room);
-        }        
+        }
 
         this.start = this.tiles[Math.floor(Math.random() * this.width)][Math.floor(Math.random() * this.height)];
         this.start.distance = 0;
         let farthest = this.start;
-        const toCheck = [farthest];        
+        const toCheck = [farthest];
         while(toCheck.length > 0){
             const tile = toCheck.shift();
             const processTile = (other) => {
@@ -127,9 +127,12 @@ class DungeonMap {
         this.goal = farthest;
 
         this.image = document.createElement('canvas');
-        this.image.width = this.width * this.tileSize;
-        this.image.height = this.height * this.tileSize;
+        this.image.width = (this.width+10) * this.tileSize;
+        this.image.height = (this.height+10) * this.tileSize;
         const ctx = this.image.getContext('2d');
+        ctx.fillStyle = "black";
+        ctx.fillRect(0, 0, this.image.width, this.image.height);
+        ctx.translate(5*this.tileSize, 5*this.tileSize);
         for(let x = 0; x < this.width; x++){
             for(let y = 0; y < this.height; y++){
                 const tile = this.tiles[x][y];
@@ -139,7 +142,7 @@ class DungeonMap {
                     (tile.walls.bottom ? 4 : 0)
                 );
                 const tileY = this.tileSize * (tile.walls.right ? 1 : 0);
-                
+
                 ctx.drawImage(tileSet, tileX, tileY, this.tileSize, this.tileSize, x*this.tileSize, y*this.tileSize, this.tileSize, this.tileSize);
                 if(tile === this.goal){
                     ctx.fillStyle = 'green';
@@ -155,12 +158,22 @@ class DungeonMap {
         }
     }
 
-    render(ctx, tx, ty){
-        ctx.drawImage(this.image, tx, ty);
+    render(ctx){
+        ctx.drawImage(this.image, 0, 0, this.image.width, this.image.height, -5*this.tileSize, -5*this.tileSize, this.image.width, this.image.height);
     }
 
     collides(x, y, direction){
         return this.tiles[x][y].walls[direction];
+    }
+
+    removeGoal(){
+        const ctx = this.image.getContext('2d');
+        ctx.clearRect((this.goal.x+0.25)*this.tileSize, (this.goal.y+0.25)*this.tileSize, this.tileSize/2, this.tileSize/2);
+    }
+
+    discardImage(){
+        this.image.width = 0;
+        this.image.height = 0;
     }
 };
 
