@@ -35,6 +35,11 @@ const GameState = () => ({
     map: null,
     player: new Mob(),
     energy: maxEnergy,
+    score: 0,
+    levelScore: 0,
+    torchesCollected: 0,
+    splotchesPlaced: 0,
+    stepsMoved: 0,
 
     create: function () {
         this.lightCircle = document.createElement('canvas');
@@ -50,13 +55,18 @@ const GameState = () => ({
     },
 
     step: function (dt) {
+        this.levelScore = Math.max(0, this.levelScore - 1000*dt);
         this.player.update(dt, this.scale);
         const px = Math.round(this.player.position.x);
         const py = Math.round(this.player.position.y);
         if(this.map.tiles[px][py].item === 'battery'){
-            this.map.removeItem(px, py);
             this.energy = Math.min(this.energy + 50, maxEnergy);
+            this.torchesCollected++;
         }
+        if(this.map.tiles[px][py].item !== 'splotch'){
+            this.map.setItem(px, py, 'splotch');
+            this.splotchesPlaced++;
+        }        
         const scrollDX = gameSize.x/2 - (this.player.position.x+0.5) * tileSize - this.scroll.x
         if(scrollDX !== 0){
             const scrollMX = Math.max(Math.abs(scrollDX) * dt * 4, 1/4);
@@ -142,6 +152,10 @@ const GameState = () => ({
         ctx.fillStyle = lightGradient;
         ctx.fillRect(this.offset.x, this.offset.y, gameSize.x * this.scale, gameSize.y * this.scale);
 
+        ctx.font = this.scale*8+"px sans-serif";
+        ctx.fillStyle = 'white';
+        ctx.fillText(this.score, this.offset.x + this.scale * 5, this.offset.y + this.scale * 10);
+        ctx.fillText(this.levelScore, this.offset.x + this.scale * 5, this.offset.y + this.scale * 20);
         //DEBUG INFO
         ctx.strokeStyle = 'white';
         ctx.strokeRect(this.offset.x, this.offset.y, gameSize.x * this.scale, gameSize.y * this.scale);
@@ -149,7 +163,7 @@ const GameState = () => ({
         fps = (fps * 29 + 1 / dt) / 30;
         ctx.font = "20px sans-serif";
         ctx.fillStyle = 'white';
-        ctx.fillText(Math.round(fps), 10, 30);
+        ctx.fillText(Math.round(fps), 10, 30);        
     },
 
     keydown: function (data) {
@@ -163,6 +177,7 @@ const GameState = () => ({
                 if(!this.map.collides(this.player.target.x, this.player.target.y, "left")){
                     this.player.move(-1, 0);
                     this.energy -= 1;
+                    this.stepsMoved++;
                 }
                 break;
             case 'right':
@@ -171,6 +186,7 @@ const GameState = () => ({
                 if(!this.map.collides(this.player.target.x, this.player.target.y, "right")){
                     this.player.move(1, 0);
                     this.energy -= 1;
+                    this.stepsMoved++;
                 }
                 break;
             case 'up':
@@ -179,6 +195,7 @@ const GameState = () => ({
                 if(!this.map.collides(this.player.target.x, this.player.target.y, "top")){
                     this.player.move(0, -1);
                     this.energy -= 1;
+                    this.stepsMoved++;
                 }
                 break;
             case 'down':
@@ -187,6 +204,7 @@ const GameState = () => ({
                 if(!this.map.collides(this.player.target.x, this.player.target.y, "bottom")){
                     this.player.move(0, 1);
                     this.energy -= 1;
+                    this.stepsMoved++;
                 }
                 break;
         }
@@ -237,6 +255,9 @@ const GameState = () => ({
         this.player.setPosition(this.map.start.x, this.map.start.y);
         this.scroll.x = gameSize.x/2 - (this.player.position.x+0.5) * tileSize;
         this.scroll.y = gameSize.y/2 - (this.player.position.y+0.5) * tileSize;
+
+        this.score += this.levelScore;
+        this.levelScore = 5000 + Math.round(Math.pow(this.mapSize, 1.5))*500;
     }
 });
 

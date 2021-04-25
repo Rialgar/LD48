@@ -10,7 +10,9 @@ const drawTile = (tile, tileSize, tileSet, objectImage, ctx) => {
     if(tile.item === 'goal'){
         ctx.drawImage(objectImage, 0, 0, 16, 16, tile.x*tileSize+8, tile.y*tileSize+8, 16, 16);
     } else if (tile.item === 'battery'){
-        ctx.drawImage(objectImage, 0, 32, 16, 16, tile.x*tileSize+8, tile.y*tileSize+8, 16, 16);
+        ctx.drawImage(objectImage, Math.floor(Math.random()*2)*16, Math.floor(Math.random()*2)*16 + 16, 16, 16, tile.x*tileSize+8, tile.y*tileSize+8, 16, 16);
+    } else if (tile.item === 'splotch'){
+        ctx.drawImage(objectImage, Math.floor(Math.random()*2)*16, Math.floor(Math.random()*2)*16 + 48, 16, 16, tile.x*tileSize+8, tile.y*tileSize+8, 16, 16);
     }
 
     /*ctx.fillStyle = "white";
@@ -192,7 +194,12 @@ class DungeonMap {
 
     removeItem(x, y){
         this.tiles[x][y].item = null;
-        drawTile(this.tiles[x][y], this.tileSize, this.tileSet, this.objectImage, this.image.getContext('2d')); 
+        drawTile(this.tiles[x][y], this.tileSize, this.tileSet, this.objectImage, this.image.getContext('2d'));
+    }
+
+    setItem(x, y, item){
+        this.tiles[x][y].item = item;
+        drawTile(this.tiles[x][y], this.tileSize, this.tileSet, this.objectImage, this.image.getContext('2d'));
     }
 
     discardImage(){
