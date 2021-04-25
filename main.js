@@ -7,6 +7,7 @@ const app = playground({
         this.layer.canvas.id = 'game';
         this.loadImage("walls16");
         this.loadImage("walls32");
+        this.loadImage("objects");
     },
     ready: function () {
         this.setState(GameState());

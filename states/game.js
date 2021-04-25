@@ -7,6 +7,14 @@ const gameSize = {
     y: 150 * tileSize / 16
 }
 
+const playerOffsets = {
+    'straight': 0,
+    'up': 16,
+    'down': 32,
+    'left': 48,
+    'right': 64
+}
+
 let fps = 60;
 
 const GameState = () => ({
@@ -72,7 +80,7 @@ const GameState = () => ({
     render: function (dt) {
         const ctx = this.app.layer.context;        
         
-        //force discard previous image, so it does not stick around in graphics memory, apparently this is something we have to do these days...
+        //force discard previous image to clean up graphics memory, apparently this is something we have to do these days...
         this.app.layer.canvas.height += 1;
         this.app.layer.canvas.height -= 1;
         ctx.clearRect(0, 0, this.app.width, this.app.height);
@@ -119,8 +127,8 @@ const GameState = () => ({
             ctx.translate(tx, ty);
         }
         
-        ctx.fillStyle = "red";
-        ctx.fillRect((this.player.position.x + 0.25) * tileSize, (this.player.position.y + 0.25) * tileSize, tileSize / 2, tileSize / 2);
+        const objectOffset = playerOffsets[this.player.looking];
+        ctx.drawImage(this.app.images.objects, 32+objectOffset, 0, 16, 16, this.player.position.x * tileSize + 8, this.player.position.y * tileSize + 8, 16, 16);
 
         ctx.restore();
         const cx = ((this.player.position.x+0.5) * tileSize + tx) * this.scale + this.offset.x;
@@ -141,24 +149,28 @@ const GameState = () => ({
         switch (data.key) {
             case 'left':
             case 'a':
+                this.player.looking = 'left';
                 if(!this.map.collides(this.player.target.x, this.player.target.y, "left")){
                     this.player.move(-1, 0);
                 }
                 break;
             case 'right':
             case 'd':
+                this.player.looking = 'right';
                 if(!this.map.collides(this.player.target.x, this.player.target.y, "right")){
                     this.player.move(1, 0);
                 }
                 break;
             case 'up':
             case 'w':
+                this.player.looking = 'up';
                 if(!this.map.collides(this.player.target.x, this.player.target.y, "top")){
                     this.player.move(0, -1);
                 }
                 break;
             case 'down':
             case 's':
+                this.player.looking = 'down';
                 if(!this.map.collides(this.player.target.x, this.player.target.y, "bottom")){
                     this.player.move(0, 1);
                 }
@@ -166,6 +178,18 @@ const GameState = () => ({
         }
     },
     keyup: function (data) {
+        switch (data.key) {
+            case 'left':
+            case 'a':
+            case 'right':
+            case 'd':
+            case 'up':
+            case 'w':
+            case 'down':
+            case 's':
+                this.player.looking = 'straight';
+                break;
+        }
     },
 
     mousedown: function (data) { },
@@ -195,7 +219,7 @@ const GameState = () => ({
             };
         }
 
-        this.map = new DungeonMap(this.app.images["walls"+tileSize], tileSize, this.mapSize);
+        this.map = new DungeonMap(this.app.images["walls"+tileSize], this.app.images.objects, tileSize, this.mapSize);
         this.player.setPosition(this.map.start.x, this.map.start.y);
         this.scroll.x = gameSize.x/2 - (this.player.position.x+0.5) * tileSize;
         this.scroll.y = gameSize.y/2 - (this.player.position.y+0.5) * tileSize;

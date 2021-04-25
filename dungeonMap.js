@@ -7,7 +7,7 @@ class DungeonMap {
     height = 0;
     tiles = [];
 
-    constructor(tileSet, tileSize, size){
+    constructor(tileSet, objectImage, tileSize, size){
         this.tileSize = tileSize;
 
         this.width = size;
@@ -145,8 +145,7 @@ class DungeonMap {
 
                 ctx.drawImage(tileSet, tileX, tileY, this.tileSize, this.tileSize, x*this.tileSize, y*this.tileSize, this.tileSize, this.tileSize);
                 if(tile === this.goal){
-                    ctx.fillStyle = 'green';
-                    ctx.fillRect((x+0.25)*this.tileSize, (y+0.25)*this.tileSize, this.tileSize/2, this.tileSize/2);
+                    ctx.drawImage(objectImage, 0, 0, 16, 16, x*this.tileSize+8, y*this.tileSize+8, 16, 16);
                 }
 
                 /*ctx.fillStyle = "white";
@@ -156,6 +155,8 @@ class DungeonMap {
                 ctx.fillText(tileX + "," + tileY, 6, 24);*/
             }
         }
+
+        this.objectImage = objectImage;
     }
 
     render(ctx){
@@ -168,7 +169,10 @@ class DungeonMap {
 
     removeGoal(){
         const ctx = this.image.getContext('2d');
-        ctx.clearRect((this.goal.x+0.25)*this.tileSize, (this.goal.y+0.25)*this.tileSize, this.tileSize/2, this.tileSize/2);
+        const x = (this.goal.x+0.25)*this.tileSize;
+        const y = (this.goal.y+0.25)*this.tileSize;
+        ctx.clearRect(x, y, 16, 16)
+        ctx.drawImage(this.objectImage, 16, 0, 16, 16, x, y, 16, 16);
     }
 
     discardImage(){
