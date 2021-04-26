@@ -15,10 +15,45 @@
 			src: local('Press Start 2P Regular'), local('PressStart2P-Regular'), url(./font/PressStart2P-Regular.woff2) format('woff2');
 			unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 		}
+
+		body {
+			font-size: 8px;
+			--game-width: 300px;
+			--game-left: 0px;
+			--game-top: 0px;
+		}
+
+		#intro, #outro {
+			font-family: 'Press Start 2p';
+			line-height: 1.5em;
+			color: white;
+			position: absolute;
+			z-index: 1;
+			background-color: black;
+
+			left: calc(var(--game-left) + 0.5em);
+			top: calc(var(--game-top) + 0.5em);
+			width: calc(var(--game-width) - 1em);
+			display: none;
+		}
 	</style>
 </head>
 
 <body>
+	<div id="intro">
+		Squiddie wants to go as far down into the Labyrinth as they can. <br /><br />
+		WASD/Arrows to move.<br /><br />
+		Light will reduce with each step. Collect torches to replenish light. When you run out of light, the game ends. Move quickly for a high score. <br /><br />
+		Press Space to start.
+	</div>
+	<div id="outro">
+		Squiddie ran out of light. Reload the page to restart.<br/><br/>
+		Your final score was <span id="score"></span>.<br/>
+		You reached level <span id="level"></span>.<br/>
+		You moved <span id="steps"></span> steps.<br/>
+		You placed <span id="splotches"></span> splotches of ink.<br/>
+		You collected <span id="torches"></span> torches.
+	</div>
 </body>
 
 </html>

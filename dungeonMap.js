@@ -14,12 +14,6 @@ const drawTile = (tile, tileSize, tileSet, objectImage, ctx) => {
     } else if (tile.item === 'splotch'){
         ctx.drawImage(objectImage, Math.floor(Math.random()*2)*16, Math.floor(Math.random()*2)*16 + 48, 16, 16, tile.x*tileSize+8, tile.y*tileSize+8, 16, 16);
     }
-
-    /*ctx.fillStyle = "white";
-    ctx.font = '10px sans-serif';
-    ctx.fillText(tile.distance, x*this.tileSize+6, y*this.tileSize+16);
-    ctx.fillText((tile.walls.right ? 1 : 0)+','+(tile.walls.bottom ? 1 : 0)+','+(tile.walls.left ? 1 : 0)+','+(tile.walls.up ? 1 : 0), 6, 10);
-    ctx.fillText(tileX + "," + tileY, 6, 24);*/
 }
 class DungeonMap {
     tileSize = 16;

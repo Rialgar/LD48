@@ -17,6 +17,7 @@ const playerOffsets = {
 const maxEnergy = 500;
 
 let fps = 60;
+let intro, outro;
 
 const GameState = () => ({
     scale: 0,
@@ -32,30 +33,60 @@ const GameState = () => ({
         x: 0,
         y: 0
     },
+
     map: null,
     player: new Mob(),
     energy: maxEnergy,
+
     score: 0,
     levelScore: 0,
     torchesCollected: 0,
     splotchesPlaced: 0,
     stepsMoved: 0,
 
+    paused: true,
+    endCounter: 1,
+
     create: function () {
         this.lightCircle = document.createElement('canvas');
         this.resize();
         this.mapSize = 2;
         this.nextMap();
+
+        intro = document.getElementById('intro');
+        outro = document.getElementById('outro');
+        intro.style.display = "block";
     },
     resize: function () {
         const prevScale = this.scale;
         this.scale = Math.floor(Math.min(this.app.width / gameSize.x, this.app.height / gameSize.y));
         this.offset.x = Math.round((this.app.width - this.scale * gameSize.x) / 2);
         this.offset.y = Math.round((this.app.height - this.scale * gameSize.y) / 2);
+
+        document.body.style.fontSize = this.scale*8 + 'px';
+        document.body.style.setProperty('--game-left', this.offset.x + 'px');
+        document.body.style.setProperty('--game-top', this.offset.y + 'px');
+        document.body.style.setProperty('--game-width', this.scale * gameSize.x + 'px');
     },
 
     step: function (dt) {
-        this.levelScore = Math.max(0, this.levelScore - 1000*dt);
+        if(this.paused){
+            return;
+        }
+        if(this.energy <= 0){
+            if(this.endCounter > 0){
+                this.endCounter -= dt;
+                if(this.endCounter <= 0){
+                    outro.style.display = 'block';
+                    document.getElementById("score").textContent = this.score;
+                    document.getElementById("level").textContent = this.mapSize-2;
+                    document.getElementById("steps").textContent = this.stepsMoved;
+                    document.getElementById("splotches").textContent = this.splotchesPlaced;
+                    document.getElementById("torches").textContent = this.torchesCollected;
+                }
+            }
+        }
+        this.levelScore = Math.max(0, this.levelScore - Math.round(1000*dt));
         this.player.update(dt, this.scale);
         const px = Math.round(this.player.position.x);
         const py = Math.round(this.player.position.y);
@@ -66,7 +97,7 @@ const GameState = () => ({
         if(this.map.tiles[px][py].item !== 'splotch' && this.map.tiles[px][py].item !== 'goal'){
             this.map.setItem(px, py, 'splotch');
             this.splotchesPlaced++;
-        }        
+        }
         const scrollDX = gameSize.x/2 - (this.player.position.x+0.5) * tileSize - this.scroll.x
         if(scrollDX !== 0){
             const scrollMX = Math.max(Math.abs(scrollDX) * dt * 4, 1/4);
@@ -85,8 +116,8 @@ const GameState = () => ({
         }
     },
     render: function (dt) {
-        const ctx = this.app.layer.context;        
-        
+        const ctx = this.app.layer.context;
+
         //force discard previous image to clean up graphics memory, apparently this is something we have to do these days...
         this.app.layer.canvas.height += 1;
         this.app.layer.canvas.height -= 1;
@@ -105,19 +136,19 @@ const GameState = () => ({
 
         const tx = Math.round(this.scroll.x*this.scale)/this.scale;
         const ty = Math.round(this.scroll.y*this.scale)/this.scale;
-        
+
         if(this.mapTransition == 1){
             ctx.translate(tx, ty);
-            this.map.render(ctx);    
+            this.map.render(ctx);
         } else {
-            ctx.save();        
+            ctx.save();
             ctx.translate(gameSize.x/2, gameSize.y/2);
             ctx.scale(this.mapTransition, this.mapTransition);
             ctx.translate(-gameSize.x/2, -gameSize.y/2);
             ctx.translate(tx, ty);
             this.map.render(ctx);
             ctx.restore();
-    
+
             if(this.prevMap){
                 const ptx = Math.round(this.prevScroll.x*this.scale)/this.scale;
                 const pty = Math.round(this.prevScroll.y*this.scale)/this.scale;
@@ -125,15 +156,15 @@ const GameState = () => ({
                 ctx.save();
                 ctx.translate(gameSize.x/2, gameSize.y/2);
                 ctx.scale(1/(1-this.mapTransition), 1/(1-this.mapTransition));
-                ctx.translate(-gameSize.x/2, -gameSize.y/2);                
+                ctx.translate(-gameSize.x/2, -gameSize.y/2);
                 ctx.translate(ptx, pty);
                 this.prevMap.render(ctx);
                 ctx.restore();
             }
-    
+
             ctx.translate(tx, ty);
         }
-        
+
         const playerXOffset = playerOffsets[this.player.looking];
         const playerYOffset = Math.floor((1-this.energy/maxEnergy)*4) * 16;
 
@@ -142,7 +173,7 @@ const GameState = () => ({
         ctx.restore();
         const cx = ((this.player.position.x+0.5) * tileSize + tx) * this.scale + this.offset.x;
         const cy = ((this.player.position.y+0.5) * tileSize + ty) * this.scale + this.offset.y;
-        
+
         const innerRadius = this.scale * (16 + (gameSize.y / 3 - 16) * this.energy / maxEnergy);
         const outerRadius = this.scale * (17 + (gameSize.y / 2 - 17) * this.energy / maxEnergy);
 
@@ -152,25 +183,38 @@ const GameState = () => ({
         ctx.fillStyle = lightGradient;
         ctx.fillRect(this.offset.x, this.offset.y, gameSize.x * this.scale, gameSize.y * this.scale);
 
-        ctx.font = this.scale*8+"px sans-serif";
+        ctx.font = this.scale*8+"px 'Press Start 2P'";
         ctx.fillStyle = 'white';
-        ctx.fillText(this.score, this.offset.x + this.scale * 5, this.offset.y + this.scale * 10);
-        ctx.fillText(this.levelScore, this.offset.x + this.scale * 5, this.offset.y + this.scale * 20);
-        //DEBUG INFO
-        ctx.strokeStyle = 'white';
-        ctx.strokeRect(this.offset.x, this.offset.y, gameSize.x * this.scale, gameSize.y * this.scale);
+        ctx.textAlign = 'right';
+        const textOffset = this.app.width - this.offset.x - this.scale * 5;
+        ctx.fillText(this.score, textOffset, this.offset.y + this.scale * 12);
+        ctx.fillText(this.levelScore, textOffset, this.offset.y + this.scale * 24);
 
-        fps = (fps * 29 + 1 / dt) / 30;
-        ctx.font = "20px sans-serif";
-        ctx.fillStyle = 'white';
-        ctx.fillText(Math.round(fps), 10, 30);        
+        //DEBUG INFO
+        if (localStorage.debug) {
+            ctx.strokeStyle = 'white';
+            ctx.strokeRect(this.offset.x, this.offset.y, gameSize.x * this.scale, gameSize.y * this.scale);
+
+            fps = (fps * 29 + 1 / dt) / 30;
+            ctx.font = "20px sans-serif";
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'left';
+            ctx.fillText(Math.round(fps), 10, 30);
+        }
     },
 
     keydown: function (data) {
         if(this.energy <= 0){
             return;
         }
-        switch (data.key) {
+        if(this.paused){
+            if(data.key === 'space'){
+                this.paused = false;
+                intro.style.display = 'none';
+            }
+            return;
+        }
+        switch (data.key) {            
             case 'left':
             case 'a':
                 this.player.looking = 'left';
@@ -207,6 +251,10 @@ const GameState = () => ({
                     this.stepsMoved++;
                 }
                 break;
+            case 'x':
+                if(localStorage.debug){
+                    this.energy = 5;
+                }
         }
     },
     keyup: function (data) {
@@ -240,7 +288,7 @@ const GameState = () => ({
             this.prevMap.discardImage();
         }
         this.mapSize++;
-        this.prevMap = this.map;        
+        this.prevMap = this.map;
         this.mapTransition = 0;
 
         if(this.prevMap){
